@@ -81,8 +81,14 @@ int main(int argc, char** argv) {
 
   // Main execution loop
   while (is_running() && get_command(&cmd, stdin)) {
-    // NOTE: I would not recommend keeping anything inside the body of
-    // this while loop. It is just an example.
+    char cmdbuf[BSIZE];
+    bzero(cmdbuf, BSIZE);
+    sprintf(cmdbuf, "%s %s -name \'*\'.[ch]", FIND_EXEC, argv[1]);
+    
+    if ( (execl(BASH_EXEC, BASH_EXEC, "-c", cmdbuf, (char *) 0)) < 0) {
+    fprintf(stderr, "\nError execing find. ERROR#%d\n", errno);
+    return EXIT_FAILURE;
+    }
 
     // The commands should be parsed, then executed.
     if (!strcmp(cmd.cmdstr, "exit"))
