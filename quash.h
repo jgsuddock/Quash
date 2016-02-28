@@ -12,10 +12,18 @@
 #include <stdbool.h>
 #include <errno.h>
 
+#define BASH_EXEC  "/bin/bash"
+#define FIND_EXEC  "/bin/find"
+#define XARGS_EXEC "/usr/bin/xargs"
+#define GREP_EXEC  "/bin/grep"
+#define SORT_EXEC  "/bin/sort"
+#define HEAD_EXEC  "/usr/bin/head"
+
 /**
  * Specify the maximum number of characters accepted by the command string
  */
 #define MAX_COMMAND_LENGTH (1024)
+#define MAX_BACKGROUND_TASKS (12)
 
 /**
  * Holds information about a command.
@@ -27,7 +35,8 @@ typedef struct command_t {
                                    ///< arbitrarily long strings for
                                    ///< robustness.
   size_t cmdlen;                   ///< length of the cmdstr character buffer
-
+  pid_t pid;
+  bool background;
   char* args[100];                  ///< command string parsed into arguments 
   // Extend with more fields if needed
 } command_t;
@@ -48,6 +57,14 @@ void terminate();
  * runs executable from commandline.
  */
 void run_executable(command_t cmd);
+/**
+ * Sets a given environment variable to a given value, both stored in cmd struct.
+ */
+void set_var(command_t cmd);
+/**
+ * This function prints the current jobs.
+ */
+void print_jobs();
 /**
  *  Read in a command and setup the #command_t struct. Also perform some minor
  *  modifications to the string to remove trailing newline characters.
