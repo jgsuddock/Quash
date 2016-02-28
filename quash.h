@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <errno.h>
 
 /**
  * Specify the maximum number of characters accepted by the command string
@@ -27,6 +28,7 @@ typedef struct command_t {
                                    ///< robustness.
   size_t cmdlen;                   ///< length of the cmdstr character buffer
 
+  char* args[100];                  ///< command string parsed into arguments 
   // Extend with more fields if needed
 } command_t;
 
@@ -42,6 +44,10 @@ bool is_running();
  */
 void terminate();
 
+/**
+ * runs executable from commandline.
+ */
+void run_executable(command_t cmd);
 /**
  *  Read in a command and setup the #command_t struct. Also perform some minor
  *  modifications to the string to remove trailing newline characters.
