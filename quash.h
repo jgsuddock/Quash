@@ -11,13 +11,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <errno.h>
-
-#define BASH_EXEC  "/bin/bash"
-#define FIND_EXEC  "/bin/find"
-#define XARGS_EXEC "/usr/bin/xargs"
-#define GREP_EXEC  "/bin/grep"
-#define SORT_EXEC  "/bin/sort"
-#define HEAD_EXEC  "/usr/bin/head"
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/wait.h>
 
 /**
  * Specify the maximum number of characters accepted by the command string
@@ -38,7 +34,8 @@ typedef struct command_t {
   pid_t pid;
   bool takesIn;
   bool sendsOut;
-  bool usesPiping;
+  bool pipesIn;
+  bool pipesOut;
   bool background;
   char* args[100];                  ///< command string parsed into arguments 
   int argNum;
@@ -60,7 +57,7 @@ void terminate();
 /*******************************************************
  * runs executable from commandline.
  *******************************************************/
-void run_executable(command_t cmd);
+void run_executable(command_t cmd, int infile, int outfile);
 /*******************************************************
  * Sets a given environment variable to a given value, both stored in cmd struct.
  *******************************************************/
