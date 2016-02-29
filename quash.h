@@ -36,36 +36,52 @@ typedef struct command_t {
                                    ///< robustness.
   size_t cmdlen;                   ///< length of the cmdstr character buffer
   pid_t pid;
+  bool takesIn;
+  bool sendsOut;
+  bool usesPiping;
   bool background;
   char* args[100];                  ///< command string parsed into arguments 
+  int argNum;
   // Extend with more fields if needed
 } command_t;
 
-/**
+/*******************************************************
  * Query if quash should accept more input or not.
  *
  * @return True if Quash should accept more input and false otherwise
- */
+ *******************************************************/
 bool is_running();
 
-/**
+/*******************************************************
  * Causes the execution loop to end.
- */
+ *******************************************************/
 void terminate();
 
-/**
+/*******************************************************
  * runs executable from commandline.
- */
+ *******************************************************/
 void run_executable(command_t cmd);
-/**
+/*******************************************************
  * Sets a given environment variable to a given value, both stored in cmd struct.
- */
+ *******************************************************/
 void set_var(command_t cmd);
-/**
+/*******************************************************
  * This function prints the current jobs.
- */
+ *******************************************************/
 void print_jobs();
-/**
+/*******************************************************
+ * echo environment variable
+ *******************************************************/
+void echo(cmd);
+/*******************************************************
+ * change directory
+ *******************************************************/
+void cd(cmd);
+/*******************************************************
+ * print the current working directory
+ *******************************************************/
+void pwd(cmd);
+/*******************************************************
  *  Read in a command and setup the #command_t struct. Also perform some minor
  *  modifications to the string to remove trailing newline characters.
  *
@@ -73,7 +89,7 @@ void print_jobs();
  *               #command_t.cmdlen fields will be modified
  *  @param in - an open file ready for reading
  *  @return True if able to fill #command_t.cmdstr and false otherwise
- */
+ *******************************************************/
 bool get_command(command_t* cmd, FILE* in);
 
 #endif // QUASH_H
