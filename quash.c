@@ -92,25 +92,22 @@ bool get_command(command_t* cmd, FILE* in) {
 /*******************************************************
  * run executable
  *******************************************************/
-void run_executable(command_t cmd, FILE *infileptr = NULL, FILE *outfileptr = NULL) {
+void run_executable(command_t cmd, int infile, int outfile) {
     
     if(cmd.takesIn)
     {
-        //First, we're going to open a file
-        int file = open(cmd.args[cmd.argNum-1], O_APPEND | O_WRONLY);
-        if(file < 0)    return 1;
-    
-        //Now we redirect standard output to the file using dup2
-        if(dup2(file,1) < 0)    return 1;
+        //redirect standard input to the file using dup2
+        if(dup2(infile,0) < 0)    
+        {
+        	return 1;
         }
+    }
     if(cmd.sendsOut)
     {
-        //First, we're going to open a file
-        int file = open(cmd.args[cmd.argNum-1], O_APPEND | O_WRONLY);
-        if(file < 0)    return 1;
-    
-        //Now we redirect standard output to the file using dup2
-        if(dup2(file,1) < 0)    return 1;
+        //redirect standard output to the file using dup2
+        if(dup2(outfile,1) < 0) 
+        {
+        	return 1;
         }
     }
     
@@ -212,9 +209,6 @@ void killBack(cmd)
  *******************************************************/
 int main(int argc, char** n) { 
   command_t cmd; //< Command holder argument
-  
-  char tmpCmd[1024];
-  memset(tmpCmd, 0, 1024);
 
   memset(backprocess,0,sizeof(command_t)*MAX_BACKGROUND_TASKS);
 
@@ -235,21 +229,15 @@ int main(int argc, char** n) {
   // Main execution loop
   while (is_running() && get_command(&cmd, stdin)) {
     //Copy the command string to a temporary variable.
+    char tmpCmd[1024];
     memset(tmpCmd, 0, 1024);
     strcpy(tmpCmd, cmd.cmdstr);
 
-    //Split tmpCmd to get the command 
-    char *tok;
-    tok = strtok(tmpCmd, " ");
     
     //If not receiving any command from user, skip iteration to prevent segmentation fault.
-    if ((strlen(tmpCmd) == 0)||(tok == NULL)){
+    if ((strlen(cmd.cmdstr) == 0)||(cmd.args[0] == NULL))
       continue;
-    }
-    
-    
-    
-    if (!strcmp(cmd.cmdstr, "exit") || !strcmp(cmd.cmdstr, "quit"))
+    else if (!strcmp(cmd.cmdstr, "exit") || !strcmp(cmd.cmdstr, "quit"))
         terminate(); // Exit Quash
     else if(!strcmp(cmd.args[0], "set"))
         set_var(cmd);
@@ -326,11 +314,11 @@ int main(int argc, char** n) {
  * @file quash.c
  *
  * Quash's main file
- */
+ *
 
 /**************************************************************************
  * Included Files
- **************************************************************************/ 
+ ************************************************************************** 
 #include "quash.h" // Putting this above the other includes allows us to ensure
                    // this file's header's #include statements are self
                    // contained.
@@ -348,10 +336,10 @@ int main(int argc, char** n) {
 
 /**************************************************************************
  * Private Variables
- **************************************************************************/
+ **************************************************************************
 /**
  * Keep track of whether Quash should request another command or not.
- */
+ *
 // NOTE: "static" causes the "running" variable to only be declared in this
 // compilation unit (this file and all files that include it). This is similar
 // to private in other languages.
@@ -361,10 +349,10 @@ command_t backprocess[MAX_BACKGROUND_TASKS];
 
 /**************************************************************************
  * Private Functions 
- **************************************************************************/
+ **************************************************************************
 /**
  * Start the main loop by setting the running flag to true
- */
+ *
 static void start() {
   memset(pPath,0,1024);
   memset(hHome,0,1024);
@@ -377,11 +365,11 @@ static void start() {
 
 /**************************************************************************
  * Public Functions 
- **************************************************************************/
+ **************************************************************************
 /**
  * This function checks if the program is running or not.
  * @return boolean value of running
- */
+ *
 bool is_running() {
   return running;
 }
@@ -389,7 +377,7 @@ bool is_running() {
 /**
  * This function terminates the program.
  * @return none
- */
+ *
 void terminate() {
   running = false;
   printf("Bye!\n");
@@ -399,7 +387,7 @@ void terminate() {
  * This function allows the user to set the environment variable.
  * @param envVar environment string to be set
  * @return none
- */
+ *
 void set(char *envVar){
   if ((envVar == NULL) || (*envVar == ' ')){
     puts("Error. Empty variable.");
@@ -408,7 +396,7 @@ void set(char *envVar){
 
   char *token;
 
-  /* get the first token */
+  /* get the first token *
   token = strtok(envVar, "=");
 
   if (strcmp(token, "PATH") == 0){
@@ -428,7 +416,7 @@ void set(char *envVar){
  * This function prints the string passed to it.
  * @param string string to be printed out.
  * @return none
- */
+ *
 void echo(char *string){
   //If empty string, just print a new line.
 	if(string == NULL){
@@ -451,7 +439,7 @@ void echo(char *string){
  * This function allows the user to change directory.
  * @param dir string to cd into.
  * @return none
- */
+ *
 void cd(char *dir){
 	int ret = 0;
 	
@@ -472,7 +460,7 @@ void cd(char *dir){
 /**
  * This function prints the current working directory.
  * @return none
- */
+ *
 void pwd(){
 	char *currentDir = getcwd(NULL, 0);
 	puts(currentDir);
@@ -484,7 +472,7 @@ void pwd(){
 /**
  * This function prints the current jobs.
  * @return none
- */
+ *
 void jobs(){
   for (int n = 0; n < MAX_BACKGROUND_TASKS; n++){
     if(backprocess[n].pid != 0){
@@ -499,7 +487,7 @@ void jobs(){
  * @param sigNum integer value of the signal to be sent
  * @param jobID integer value of the Job ID
  * @return none
- */
+ *
 void killBack(int sigNum, int jobID){
   if (sigNum == 0 || jobID == 0){
     puts("Invalid command.");
@@ -523,7 +511,7 @@ void killBack(int sigNum, int jobID){
  * This function catches the signal and notifies the parent when a child process exits.
  * @param sig_num integer value of signal to catch
  * @return none
- */
+ *
 void catch_sigchld(int sig_num){
   int status;
   for (int n = 0; n < MAX_BACKGROUND_TASKS; n++){
@@ -549,7 +537,7 @@ void catch_sigchld(int sig_num){
  * @param fdread integer value of the read file descriptor
  * @param fdwrite integer value of the write file descriptor
  * @return none
- */
+ *
 void genCmdSimple(command_t* cmd,int fdread,int fdwrite){
   int status;
   pid_t pid_1;
@@ -635,7 +623,7 @@ void genCmdSimple(command_t* cmd,int fdread,int fdwrite){
  * @param fdread integer value of the read file descriptor
  * @param fdwrite integer value of the write file descriptor
  * @return none
- */
+ *
 void genCmd(command_t* cmd,int fdread,int fdwrite){
   int status;
   pid_t pid_1;
@@ -798,7 +786,7 @@ bool get_command(command_t* cmd, FILE* in) { //checks for an input from in, and 
  * @param argc argument count from the command line
  * @param argv argument vector from the command line
  * @return program exit status
- */
+ *
 int main(int argc, char** argv) { 
   command_t cmd; //< Command holder argument
   
@@ -808,8 +796,8 @@ int main(int argc, char** argv) {
   memset(backprocess,0,sizeof(command_t)*MAX_BACKGROUND_TASKS);
 
   struct sigaction sa;
-  sigset_t mask_set;  /* used to set a signal masking set. */
-  /* setup mask_set */
+  sigset_t mask_set;  /* used to set a signal masking set. *
+  /* setup mask_set *
   sigemptyset(&mask_set);
   sigfillset(&mask_set);//prevent other interupts from interupting intrupts
   sa.sa_mask = mask_set;
@@ -928,7 +916,7 @@ int main(int argc, char** argv) {
   return EXIT_SUCCESS;
 }
 
-
+*/
 
 
 
