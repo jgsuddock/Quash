@@ -70,11 +70,11 @@ bool get_command(command_t* cmd, FILE* in) {
       cmd->cmdlen = len;
     
     int i = 0;
-    cmd->args[i] = strtok(cmd->cmdstr," =");
+    cmd->args[i] = strtok(cmd->cmdstr," ");
     while (cmd->args[i] != NULL)
     {
         i++;
-        cmd->args[i] = strtok (NULL, " =");
+        cmd->args[i] = strtok (NULL, " ");
     }
     cmd->argNum = i;
     
@@ -166,12 +166,23 @@ void set_var(command_t cmd) {
     //sprintf(pathBuffer, (strlen(cmd.args[2]) != 0) ? "%s:%s" : "%s%s", getenv("PATH"), cmd.args[2]);
 	
 	int ret = 0;
-	if(cmd.args[2]) {
-		ret = setenv(cmd.args[1], cmd.args[2], 1);
-	}
-
-	if(ret == -1) {
+	if(cmd.argNum != 2) {
 		printf("Cannot Set Environment Variable\n");
+	}
+	else {
+		char * str;
+		char * str1;
+		char * str2;
+		str = strtok(cmd.args[1], "=");
+		str1 = str;
+		printf("%s ", str1);
+		str = strtok (NULL, "=");
+		str2 = str;
+		printf("%s\n", str2);
+		ret = setenv(str1, str2, 1);
+		if(ret == -1) {
+			printf("Cannot Set Environment Variable\n");
+		}
 	}
 }
 
