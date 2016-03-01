@@ -162,9 +162,6 @@ void run_executable(command_t cmd, int infile, int outfile) {
  * Sets a given environment variable to a given value, both stored in cmd struct.
  *******************************************************/
 void set_var(command_t cmd) {
-    //char pathBuffer[1024];
-    //sprintf(pathBuffer, (strlen(cmd.args[2]) != 0) ? "%s:%s" : "%s%s", getenv("PATH"), cmd.args[2]);
-	
 	int ret = 0;
 	if(cmd.argNum != 2) {
 		printf("Cannot Set Environment Variable\n");
@@ -173,12 +170,13 @@ void set_var(command_t cmd) {
 		char * str;
 		char * str1;
 		char * str2;
+
+		// Removes 
 		str = strtok(cmd.args[1], "=");
 		str1 = str;
-		printf("%s ", str1);
 		str = strtok (NULL, "=");
 		str2 = str;
-		printf("%s\n", str2);
+
 		ret = setenv(str1, str2, 1);
 		if(ret == -1) {
 			printf("Cannot Set Environment Variable\n");
