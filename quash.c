@@ -164,7 +164,15 @@ void run_executable(command_t cmd, int infile, int outfile) {
 void set_var(command_t cmd) {
     //char pathBuffer[1024];
     //sprintf(pathBuffer, (strlen(cmd.args[2]) != 0) ? "%s:%s" : "%s%s", getenv("PATH"), cmd.args[2]);
-    setenv(cmd.args[1], cmd.args[2]);
+	
+	int ret = 0;
+	if(cmd.args[2]) {
+		ret = setenv(cmd.args[1], cmd.args[2], 1);
+	}
+
+	if(ret == -1) {
+		printf("Cannot Set Environment Variable\n");
+	}
 }
 
 /*******************************************************
@@ -183,6 +191,25 @@ void print_jobs(){
  *******************************************************/
 void echo(command_t cmd)
 {
+	for (int i = 1; i < cmd.argNum; i++) { // Loop to check through every argument
+		if(strncmp(cmd.args[i], "$", 1) == 0) { // Check for environment variables
+			char * var;
+			char * temp;
+			var = strtok(cmd.args[i], "$");
+			temp = getenv(var);
+
+			if(! temp) { // Environment variable not found
+				printf(" ");
+			}
+			else {
+				printf("%s ", temp);
+			}
+		}
+		else { // Print string
+			printf("%s ", cmd.args[i]);
+		}
+	}
+	printf("\n");
 }
 /*******************************************************
  * change directory
@@ -274,12 +301,12 @@ int main(int argc, char** n) {
             infileptr = fopen(tmp,"r");
             if(infileptr != NULL)
             {
-            infiledsc = fileno(infileptr);
+				infiledsc = fileno(infileptr);
             }
             else
             {
-            perror ("The following error occurred");
-            continue;
+				perror ("The following error occurred");
+				continue;
             }
         }
         strcpy(tmpCmd, cmd.cmdstr);
