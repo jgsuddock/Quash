@@ -57,11 +57,11 @@ void terminate();
 /*******************************************************
  * runs executable from commandline.
  *******************************************************/
-void run_executable(command_t cmd, int infile, int outfile);
+void run_executable(command_t* cmd, int infile, int outfile);
 /*******************************************************
  * Sets a given environment variable to a given value, both stored in cmd struct.
  *******************************************************/
-void set_var(command_t cmd);
+void set_var(command_t* cmd);
 /*******************************************************
  * This function prints the current jobs.
  *******************************************************/
@@ -69,15 +69,15 @@ void print_jobs();
 /*******************************************************
  * echo environment variable
  *******************************************************/
-void echo(cmd);
+void echo(command_t* cmd);
 /*******************************************************
  * change directory
  *******************************************************/
-void cd(cmd);
+void cd(command_t* cmd);
 /*******************************************************
  * print the current working directory
  *******************************************************/
-void pwd(cmd);
+void pwd();
 /*******************************************************
  *  Read in a command and setup the #command_t struct. Also perform some minor
  *  modifications to the string to remove trailing newline characters.
