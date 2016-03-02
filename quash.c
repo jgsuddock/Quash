@@ -56,7 +56,7 @@ void terminate() {
  * get and parse command from command line
  *******************************************************/
 bool get_command(command_t* cmd, FILE* in) {
-  fputs("(quash)", stdout);
+  fputs("(quash) ", stdout);
   if (fgets(cmd->cmdstr, MAX_COMMAND_LENGTH, in) != NULL) {
     size_t len = strlen(cmd->cmdstr);
     char last_char = cmd->cmdstr[len - 1];
@@ -74,11 +74,11 @@ bool get_command(command_t* cmd, FILE* in) {
     memset(tmpCmd, 0, 1024);
     strcpy(tmpCmd, cmd->cmdstr);
     int i = 0;
-    cmd->args[i] = strtok(tmpCmd," =");
+    cmd->args[i] = strtok(tmpCmd," ");
     while (cmd->args[i] != NULL)
     {
         i++;
-        cmd->args[i] = strtok(NULL, " =");
+        cmd->args[i] = strtok(NULL, " ");
     }
     cmd->argNum = i;
     //check for special io cases: <,>,&, or |
@@ -170,7 +170,26 @@ void run_executable(command_t* cmd, int infile, int outfile) {
  *******************************************************/
 void set_var(command_t* cmd) 
 {
-    setenv(cmd->args[1], cmd->args[2]);
+	int ret = 0;
+	if(cmd->argNum != 2) {
+		printf("Cannot Set Environment Variable\n");
+	}
+	else {
+		char * str;
+		char * str1;
+		char * str2;
+
+		// Removes equal sign
+		str = strtok(cmd->args[1], "=");
+		str1 = str;
+		str = strtok (NULL, "=");
+		str2 = str;
+
+		ret = setenv(str1, str2, 1);
+		if(ret == -1) {
+			printf("Cannot Set Environment Variable\n");
+		}
+	}
 }
 
 /*******************************************************
@@ -185,7 +204,25 @@ void print_jobs()
  *******************************************************/
 void echo(command_t* cmd)
 {
-    printf("%s\n",getenv(cmd->args[1]));
+	for (int i = 1; i < cmd->argNum; i++) { // Loop to check through every argument
+		if(strncmp(cmd->args[i], "$", 1) == 0) { // Check for environment variables
+			char * var;
+			char * temp;
+			var = strtok(cmd->args[i], "$");
+			temp = getenv(var);
+
+			if(! temp) { // Environment variable not found
+				printf(" ");
+			}
+			else {
+				printf("%s ", temp);
+			}
+		}
+		else { // Print string
+			printf("%s ", cmd->args[i]);
+		}
+	}
+	printf("\n");
 }
 /*******************************************************
  * change directory
@@ -198,7 +235,10 @@ void cd(command_t* cmd)
         newDir = getenv("HOME");
     else if(cmd->argNum == 2) 
         newDir = cmd->args[1];
-    chdir (newDir);
+    int ret = chdir (newDir);
+    if(ret) {
+    	printf("%s: No such file or directory\n",cmd->args[1]);
+    }
 }
 /*******************************************************
  * print the current working directory
@@ -212,6 +252,10 @@ void killBackground(command_t cmd)
 {
     
 }
+
+void parse_cmd(command_t cmd) {
+
+}
 /*******************************************************
  * Quash entry point
  *
@@ -223,9 +267,15 @@ int main(int argc, char** n) {
   command_t cmd; //< Command holder argument
  
   start();
+
+  puts("   ____  __  _____   _____ __  __");
+  puts("  / __ \\/ / / /   | / ___// / / /");
+  puts(" / / / / / / / /| | \\__ \\/ /_/ / ");
+  puts("/ /_/ / /_/ / ___ |___/ / __  /  ");
+  puts("\\___\\_\\____/_/  |_/____/_/ /_/   \n");
   
   puts("Welcome to Quash!");
-  puts("Type \"exit\" to quit");
+  puts("Type \"exit\" to quit\n");
   
   // Main execution loop
   while (is_running() && get_command(&cmd, stdin)) {
@@ -237,7 +287,7 @@ int main(int argc, char** n) {
     
     //If not receiving any command from user, skip iteration to prevent segmentation fault.
     if ((strlen(cmd.cmdstr) == 0)||(cmd.args[0] == NULL))
-      continue;
+        continue;
     else if (!strcmp(cmd.cmdstr, "exit") || !strcmp(cmd.cmdstr, "quit"))
         terminate(); // Exit Quash
     else if(!strcmp(cmd.args[0], "set"))
@@ -307,7 +357,4 @@ int main(int argc, char** n) {
   }
   return EXIT_SUCCESS;
 }
-
-
-
 
