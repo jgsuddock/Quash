@@ -97,7 +97,7 @@ bool get_command(command_t* cmd, FILE* in) {
 /*******************************************************
  * run executable
  *******************************************************/
-int run_executable(char* args, int infile, int outfile) {
+int run_executable(char* args[], int numArgs, int infile, int outfile) {
 
 	pid_t pid;
 	if((pid == fork()) < 0) {
@@ -119,8 +119,6 @@ int run_executable(char* args, int infile, int outfile) {
 	if(outfile) {
 		dup2(outfile, STDOUT_FILENO);
 	}
-
-	printf("%s\n",args);
 
 	//excel("/bin/ls", "/bin/ls", NULL);
 
@@ -195,10 +193,10 @@ int run_executable(char* args, int infile, int outfile) {
 /*******************************************************
  * Sets a given environment variable to a given value, both stored in cmd struct.
  *******************************************************/
-void set_var(command_t* cmd) 
+void set_var(char * args[], int numArgs) 
 {
 	int ret = 0;
-	if(cmd->argNum != 2) {
+	if(numArgs != 2) {
 		printf("Cannot Set Environment Variable\n");
 	}
 	else {
@@ -207,7 +205,7 @@ void set_var(command_t* cmd)
 		char * str2;
 
 		// Removes equal sign
-		str = strtok(cmd->args[1], "=");
+		str = strtok(args[1], "=");
 		str1 = str;
 		str = strtok (NULL, "=");
 		str2 = str;
@@ -229,13 +227,13 @@ void print_jobs()
 /*******************************************************
  * echo environment variable
  *******************************************************/
-void echo(command_t* cmd)
+void echo(char * args[], int numArgs)
 {
-	for (int i = 1; i < cmd->argNum; i++) { // Loop to check through every argument
-		if(strncmp(cmd->args[i], "$", 1) == 0) { // Check for environment variables
+	for (int i = 1; i < numArgs; i++) { // Loop to check through every argument
+		if(strncmp(args[i], "$", 1) == 0) { // Check for environment variables
 			char * var;
 			char * temp;
-			var = strtok(cmd->args[i], "$");
+			var = strtok(args[i], "$");
 			temp = getenv(var);
 
 			if(! temp) { // Environment variable not found
@@ -246,7 +244,7 @@ void echo(command_t* cmd)
 			}
 		}
 		else { // Print string
-			printf("%s ", cmd->args[i]);
+			printf("%s ", args[i]);
 		}
 	}
 	printf("\n");
@@ -254,18 +252,18 @@ void echo(command_t* cmd)
 /*******************************************************
  * change directory
  *******************************************************/
-void cd(command_t* cmd)
+void cd(char * args[], int numArgs)
 {
     char *newDir;
     int ret;
     
-    if(cmd->argNum == 1)
+    if(numArgs == 1)
         newDir = getenv("HOME");
-    else if(cmd->argNum == 2) 
-        newDir = cmd->args[1];
+    else if(numArgs == 2) 
+        newDir = args[1];
     ret = chdir (newDir);
     if(ret) {
-    	printf("%s: No such file or directory\n",cmd->args[1]);
+    	printf("%s: No such file or directory\n",args[1]);
     }
 }
 /*******************************************************
@@ -314,17 +312,17 @@ int main(int argc, char** n) {
 
 			// Stores command into buffer for parsing
 			char tempbuff[1024];
-			char * args;
+			char * args[1024];
 			int numArgs;
 			memset(tempbuff, 0, 1024);
 			strcpy(tempbuff, cmd.cmds[i]);
 
 			int j = 0;
-			args = strtok(tempbuff," ");
-			while (args != NULL) {
-				printf("(%s) ",args);
+			args[j] = strtok(tempbuff," ");
+			while (args[j] != NULL) {
+				printf("(%s) ",args[j]);
 				j++;
-				args = strtok(NULL, " ");
+				args[j] = strtok(NULL, " ");
 			}
 			numArgs = j;
 			printf("\n");
@@ -367,13 +365,13 @@ int main(int argc, char** n) {
 			}
 
 			else if(!strcmp(args[0], "set"))
-				set_var(&cmd);
+				set_var(args, numArgs);
 			else if(!strcmp(args[0], "jobs"))
 				print_jobs();
 			else if(!strcmp(args[0], "echo"))
-				echo(&cmd); //waiting for implementation
+				echo(args, numArgs); //waiting for implementation
 			else if(!strcmp(args[0], "cd"))
-				cd(&cmd); //waiting for implementation
+				cd(args, numArgs); //waiting for implementation
 			else if(!strcmp(args[0], "pwd"))
 				pwd(); //waiting for implementation
 			else if(!strcmp(args[0], "kill"))
@@ -386,7 +384,7 @@ int main(int argc, char** n) {
 					killBackground(&cmd);
 			}
 			else { // Run Command
-				run_executable(args, infiledsc, outfiledsc);
+				run_executable(args, numArgs, infiledsc, outfiledsc);
 			}
 
 			if(infileptr != NULL)
