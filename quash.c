@@ -85,8 +85,6 @@ bool get_command(command_t* cmd, FILE* in) {
 	cmd->cmdNum = i;
 
     //check for special io cases: <,>,&, or |
-    /* JAKE TO BE REMOVED */
-    /* JAKE KEEP THIS */
     cmd->background = (cmd->cmdstr[cmd->cmdlen-1] == '&') ? true : false;
     
     return true;
@@ -99,30 +97,6 @@ bool get_command(command_t* cmd, FILE* in) {
  *******************************************************/
 int run_executable(char* args[], int numArgs, int infile, int outfile) {
 
-	pid_t pid;
-	if((pid == fork()) < 0) {
-		perror("fork");
-		return -1;
-	}
-	if(pid) {
-		if(infile) {
-			close(infile);
-		}
-		if(outfile) {
-			close(outfile);
-		}
-		return 0;
-	}
-	if(infile) {
-		dup2(infile, STDIN_FILENO);
-	}
-	if(outfile) {
-		dup2(outfile, STDOUT_FILENO);
-	}
-
-	//excel("/bin/ls", "/bin/ls", NULL);
-
-    /*
     int foundExecutable = 0;
     char* paths[100];
     char dirBuffer[1024];
@@ -130,51 +104,50 @@ int run_executable(char* args[], int numArgs, int infile, int outfile) {
     char pPath[1024];
     strcpy(pPath, getenv("PATH"));
     paths[i] = strtok(pPath," :");
-    
-    
+
     int status;
     pid_t pid_in, pid_out;
     pid_in = fork();
     if(pid_in == 0)
     {
-        if(cmd->takesIn != 0)
-        {
-            //redirect standard input to the file using dup2
-            if(dup2(infile,0) < 0)    
-                return;
-        }
-        if(cmd->sendsOut != 0)
-        {
-            //redirect standard output to the file using dup2
-            if(dup2(outfile,1) < 0) 
-                return;
-        }
+        /*if(cmd->takesIn != 0)*/
+        /*{*/
+            /*//redirect standard input to the file using dup2*/
+            /*if(dup2(infile,0) < 0)    */
+                /*return;*/
+        /*}*/
+        /*if(cmd->sendsOut != 0)*/
+        /*{*/
+            /*//redirect standard output to the file using dup2*/
+            /*if(dup2(outfile,1) < 0) */
+                /*return;*/
+        /*}*/
         
-        if(access(cmd->args[0], F_OK) == 0)
-        {
+        /*if(access(args[0], F_OK) == 0)*/
+        /*{*/
                 foundExecutable = 1;
-                if ( (execl(cmd->args[0], cmd->args[0], (char *) 0)) < 0) {
-                    fprintf(stderr, "\nError execing find. ERROR#%d\n", errno);
+                if ( (execvp(args[0], args))) {
+                    fprintf(stderr, "\n1Error execing find. ERROR#%d\n", errno);
                     return;
                 }
-        }
-        else
-        {
-            while (paths[i] != NULL)
-            {
-                sprintf(dirBuffer, (paths[i][strlen(paths[i]) - 1] != '/') ? "%s/%s" : "%s%s", paths[i], cmd->args[0]);
-                if(access(dirBuffer, F_OK))
-                {
-                    foundExecutable = 1;
-                    if ( (execl(dirBuffer, dirBuffer, (char *) 0)) < 0) {
-                        fprintf(stderr, "\nError execing find. ERROR#%d\n", errno);
-                        return;
-                    }
-                }
-                i++;
-                paths[i] = strtok (NULL, " :");
-            }
-        }
+        /*}*/
+        /*else*/
+        /*{*/
+            /*while (paths[i] != NULL)*/
+            /*{*/
+                /*sprintf(dirBuffer, (paths[i][strlen(paths[i]) - 1] != '/') ? "%s/%s" : "%s%s", paths[i], args[0]);*/
+                /*if(access(dirBuffer, F_OK))*/
+                /*{*/
+                    /*foundExecutable = 1;*/
+                    /*if ( (execl(dirBuffer, dirBuffer, (char *) 0)) < 0) {*/
+                        /*fprintf(stderr, "\n2Error execing find. ERROR#%d\n", errno);*/
+                        /*return;*/
+                    /*}*/
+                /*}*/
+                /*i++;*/
+                /*paths[i] = strtok (NULL, " :");*/
+            /*}*/
+        /*}*/
         if(foundExecutable == 0)
         {
             puts("executable not found");
@@ -186,7 +159,6 @@ int run_executable(char* args[], int numArgs, int infile, int outfile) {
         fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
     return;
   } 
-  */
 }
 
 
@@ -304,6 +276,13 @@ int main(int argc, char** n) {
 	else if (!strcmp(cmd.cmdstr, "exit") || !strcmp(cmd.cmdstr, "quit"))
 		terminate(); // Exit Quash
 	else {
+		
+		int status;
+		pid_t pid_cmd;
+
+		int pipefd[2];
+		pipe(pipefd);
+
 		int i;
 		for(i = 0; i < cmd.cmdNum; i++) {
 
@@ -326,14 +305,27 @@ int main(int argc, char** n) {
 			FILE *outfileptr = NULL;
 			int infiledsc = -1;
 			int outfiledsc = -1;
-
-			if(strpbrk(cmd.cmds[i],"<") != false) {
-				/* JAKE NEEDS TO BE FIXED */
-				/*
-				char *tmp = strchr(tmpCmd,'<')+1;
-				if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
+			
+			int ind;
+			bool takesIn = false;
+			bool sendsOut = false;
+			for(ind = 0; ind < numArgs; ind++) {
+				if(strpbrk(args[ind],"<") != false) {
+					takesIn = true;
+				}
+				if(strpbrk(args[ind],">") != false) {
+					sendsOut = true;
+				}
+			}
+			// File Redirecting
+			/*
+			if(takesIn) {
+				int n;
+				for(int n = 0; n < )
+				char *tmp = strchr(cmd.cmdstr,'<')+1;
+				if(strncmp(tmp," ",1)==0) // if space, move ahead by one.
 					tmp++;
-				strtok(tmp, " ");//find next space or end of string. and put \0
+				strtok(tmp, " "); // find next space or end of string. and put \0
 				infileptr = fopen(tmp,"r");
 				if(infileptr != NULL)
 				{
@@ -344,11 +336,10 @@ int main(int argc, char** n) {
 					perror ("The following error occurred");
 					continue;
 				}
-				*/
+				
 			}
-			if(strpbrk(cmd.cmds[i],">") != false) {
-				/* JAKE NEEDS TO BE FIXED */
-				/*
+			if(sendsOut) != false) {
+				[> JAKE NEEDS TO BE FIXED <]
 				char *tmp = strchr(tmpCmd,'>')+1;
 				if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
 					tmp++;
@@ -356,10 +347,10 @@ int main(int argc, char** n) {
 
 				outfileptr = fopen(tmp,"w+");
 				outfiledsc = fileno(outfileptr);
-				*/
 			}
+			*/
 
-			else if(!strcmp(args[0], "set"))
+			if(!strcmp(args[0], "set"))
 				set_var(args, numArgs);
 			else if(!strcmp(args[0], "jobs"))
 				print_jobs();
@@ -379,94 +370,34 @@ int main(int argc, char** n) {
 					killBackground(&cmd);
 			}
 			else { // Run Command
-				run_executable(args, numArgs, infiledsc, outfiledsc);
+
+				pid_cmd = fork();
+				if(pid_cmd == 0) {
+					/*
+					if(i == 0) {
+						close(pipefd[0]);
+						dup2(pipefd[1], 1);
+					}
+					else {
+						close(pipefd[1]);
+						dup2(pipefd[0], 0);
+					}
+					*/
+					run_executable(args, numArgs, infiledsc, outfiledsc);
+
+					exit(0);
+				}
+				if((waitpid(pid_cmd, &status, 0)) == -1) {
+					fprintf(stderr, "3Process encountered an error. ERROR%d", errno);
+				}
 			}
 
 			if(infileptr != NULL)
 				fclose(infileptr);
 			if(outfileptr != NULL)
 				fclose(outfileptr);
-
-			/*run_executable(fword, args, infiledsc, outfiledsc);*/
 		}
 	}
-
-    //Copy the command string to a temporary variable.
-    /*char tmpCmd[1024];*/
-    /*memset(tmpCmd, 0, 1024);*/
-    /*strcpy(tmpCmd, cmd.cmdstr);*/
-    
-	/*
-     *if ((strlen(cmd.cmdstr) == 0)||(cmd.args[0] == NULL))
-     *    continue;
-	 *else if (!strcmp(cmd.cmdstr, "exit") || !strcmp(cmd.cmdstr, "quit"))
-     *    terminate(); // Exit Quash
-     *else if(!strcmp(cmd.args[0], "set"))
-     *    set_var(&cmd);
-     *else if(!strcmp(cmd.args[0], "jobs"))
-     *    print_jobs();
-     *else if(!strcmp(cmd.args[0], "echo"))
-     *    echo(&cmd); //waiting for implementation
-     *else if(!strcmp(cmd.args[0], "cd"))
-     *    cd(&cmd); //waiting for implementation
-     *else if(!strcmp(cmd.args[0], "pwd"))
-     *    pwd(); //waiting for implementation
-     *else if(!strcmp(cmd.args[0], "kill"))
-     *{
-     *    if (cmd.args[1] == NULL || cmd.args[2] == NULL){
-     *        printf("Error. Invalid number of arguments.\n");
-     *        continue;
-     *    }
-     *    else
-     *        killBackground(cmd);
-	 *}
-     *else 
-     *{
-	 */
-	/*
-        memset(tmpCmd, 0, 1024);
-        strcpy(tmpCmd, cmd.cmdstr);
-        FILE *infileptr = NULL;
-        FILE *outfileptr = NULL;
-        int infiledsc = -1;
-        int outfiledsc = -1;
-        if(cmd.takesIn){
-            char *tmp = strchr(tmpCmd,'<')+1;
-            if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
-                tmp++;
-            strtok(tmp, " ");//find next space or end of string. and put \0
-            infileptr = fopen(tmp,"r");
-            if(infileptr != NULL)
-            {
-				infiledsc = fileno(infileptr);
-            }
-            else
-            {
-				perror ("The following error occurred");
-				continue;
-			}
-        }
-        strcpy(tmpCmd, cmd.cmdstr);
-        if(cmd.sendsOut)
-        {
-            char *tmp = strchr(tmpCmd,'>')+1;
-            if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
-                tmp++;
-            strtok(tmp, " ");//find next space or end of string. and put \0
-
-            outfileptr = fopen(tmp,"w+");
-            outfiledsc = fileno(outfileptr);
-        }
-        strtok(cmd.cmdstr, "<>");//add \0 to begining of <> segment to designate end of string.
-        cmd.cmdlen = strlen(cmd.cmdstr);
-
-        
-        if(infileptr != NULL)
-            fclose(infileptr);
-        if(outfileptr != NULL)
-            fclose(outfileptr);
-	*/
-    /*}*/
   }
   return EXIT_SUCCESS;
 }
