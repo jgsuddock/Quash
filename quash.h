@@ -36,9 +36,12 @@ typedef struct command_t {
   bool sendsOut;
   bool pipesIn;
   bool pipesOut;
+  int numPipes;
   bool background;
   char* args[100];                  ///< command string parsed into arguments 
   int argNum;
+  char* cmds[100];
+  int cmdNum;
   // Extend with more fields if needed
 } command_t;
 
@@ -57,7 +60,8 @@ void terminate();
 /*******************************************************
  * runs executable from commandline.
  *******************************************************/
-void run_executable(command_t* cmd, int infile, int outfile);
+int run_executable(char* path, char* args, int infile, int outfile);
+
 /*******************************************************
  * Sets a given environment variable to a given value, both stored in cmd struct.
  *******************************************************/

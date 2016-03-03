@@ -73,20 +73,32 @@ bool get_command(command_t* cmd, FILE* in) {
     char tmpCmd[1024];
     memset(tmpCmd, 0, 1024);
     strcpy(tmpCmd, cmd->cmdstr);
-    int i = 0;
-    cmd->args[i] = strtok(tmpCmd," ");
-    while (cmd->args[i] != NULL)
-    {
-        i++;
-        cmd->args[i] = strtok(NULL, " ");
-    }
-    cmd->argNum = i;
+    
+    /*int i = 0;*/
+    /*cmd->args[i] = strtok(tmpCmd," ");*/
+    /*while (cmd->args[i] != NULL)*/
+    /*{*/
+        /*i++;*/
+        /*cmd->args[i] = strtok(NULL, " ");*/
+    /*}*/
+    /*cmd->argNum = i;*/
+
+	int i = 0;
+	cmd->cmds[i] = strtok(tmpCmd,"|");
+	while (cmd->cmds[i] != NULL) {
+		if(cmd->cmds[i][0] == ' ') { // Removes leading space
+			cmd->cmds[i]++;
+		}
+		puts(cmd->cmds[i]);
+		i++;
+		cmd->cmds[i] = strtok(NULL, "|");
+	}
+	cmd->cmdNum = i;
+
     //check for special io cases: <,>,&, or |
-    if(strpbrk(cmd->cmdstr,"<") != false)
-        cmd->takesIn = true;
-    if(strpbrk(cmd->cmdstr,">") != false)
-        cmd->sendsOut = true; 
+    /* JAKE TO BE REMOVED */
     cmd->pipesOut = (strpbrk(cmd->cmdstr,"|")!=false);
+    /* JAKE KEEP THIS */
     cmd->background = (cmd->cmdstr[cmd->cmdlen-1] == '&') ? true : false;
     
     return true;
@@ -97,8 +109,34 @@ bool get_command(command_t* cmd, FILE* in) {
 /*******************************************************
  * run executable
  *******************************************************/
-void run_executable(command_t* cmd, int infile, int outfile) {
-    
+int run_executable(char* path, char* args, int infile, int outfile) {
+
+	pid_t pid;
+	if((pid == fork()) < 0) {
+		perror("fork");
+		return -1;
+	}
+	if(pid) {
+		if(infile) {
+			close(infile);
+		}
+		if(outfile) {
+			close(outfile);
+		}
+		return 0;
+	}
+	if(infile) {
+		dup2(infile, STDIN_FILENO);
+	}
+	if(outfile) {
+		dup2(outfile, STDOUT_FILENO);
+	}
+
+	printf("%s: %s\n",path,args);
+
+	//excel("/bin/ls", "/bin/ls", NULL);
+
+    /*
     int foundExecutable = 0;
     char* paths[100];
     char dirBuffer[1024];
@@ -131,7 +169,7 @@ void run_executable(command_t* cmd, int infile, int outfile) {
                 foundExecutable = 1;
                 if ( (execl(cmd->args[0], cmd->args[0], (char *) 0)) < 0) {
                     fprintf(stderr, "\nError execing find. ERROR#%d\n", errno);
-                    return EXIT_FAILURE;
+                    return;
                 }
         }
         else
@@ -144,7 +182,7 @@ void run_executable(command_t* cmd, int infile, int outfile) {
                     foundExecutable = 1;
                     if ( (execl(dirBuffer, dirBuffer, (char *) 0)) < 0) {
                         fprintf(stderr, "\nError execing find. ERROR#%d\n", errno);
-                        return EXIT_FAILURE;
+                        return;
                     }
                 }
                 i++;
@@ -160,8 +198,9 @@ void run_executable(command_t* cmd, int infile, int outfile) {
     
     if ((waitpid(pid_in, &status, 0)) == -1) {
         fprintf(stderr, "Process 1 encountered an error. ERROR%d", errno);
-    return EXIT_FAILURE;
+    return;
   } 
+  */
 }
 
 
@@ -230,12 +269,13 @@ void echo(command_t* cmd)
 void cd(command_t* cmd)
 {
     char *newDir;
+    int ret;
     
     if(cmd->argNum == 1)
         newDir = getenv("HOME");
     else if(cmd->argNum == 2) 
         newDir = cmd->args[1];
-    int ret = chdir (newDir);
+    ret = chdir (newDir);
     if(ret) {
     	printf("%s: No such file or directory\n",cmd->args[1]);
     }
@@ -248,14 +288,97 @@ void pwd()
     char* curDir = getcwd(NULL, 0);
     printf("%s\n",curDir);
 }
-void killBackground(command_t cmd)
+
+void killBackground(command_t *cmd)
 {
     
 }
 
-void parse_cmd(command_t cmd) {
+void parse_cmd(command_t *cmd) {
+	for(int i = 0; i < cmd->cmdNum; i++) {
+		puts(cmd->cmds[i]);
+		// Stores command into buffer for parsing
+		char tempbuff[1024];
+		memset(tempbuff, 0, 1024);
+		strcpy(tempbuff, cmd->cmds[i]);
 
+		// Breaks command into first word (fword) and rest of command (args)
+		char * args = tempbuff;
+		while (*args != 0 && *(args++) != ' ') {}
+		char * fword = strtok(tempbuff, " ");
+		
+		printf("%s: %s\n",fword,args);
+
+        FILE *infileptr = NULL;
+        FILE *outfileptr = NULL;
+        int infiledsc = -1;
+        int outfiledsc = -1;
+
+		if(strpbrk(cmd->cmds[i],"<") != false) {
+			/* JAKE NEEDS TO BE FIXED */
+			/*
+            char *tmp = strchr(tmpCmd,'<')+1;
+            if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
+                tmp++;
+            strtok(tmp, " ");//find next space or end of string. and put \0
+            infileptr = fopen(tmp,"r");
+            if(infileptr != NULL)
+            {
+				infiledsc = fileno(infileptr);
+            }
+            else
+            {
+				perror ("The following error occurred");
+				continue;
+			}
+			*/
+        }
+		if(strpbrk(cmd->cmds[i],">") != false) {
+			/* JAKE NEEDS TO BE FIXED */
+			/*
+            char *tmp = strchr(tmpCmd,'>')+1;
+            if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
+                tmp++;
+            strtok(tmp, " ");//find next space or end of string. and put \0
+
+            outfileptr = fopen(tmp,"w+");
+            outfiledsc = fileno(outfileptr);
+            */
+        }
+
+
+		else if(!strcmp(fword, "set"))
+		    set_var(cmd);
+		else if(!strcmp(fword, "jobs"))
+		    print_jobs();
+		else if(!strcmp(fword, "echo"))
+		    echo(cmd); //waiting for implementation
+		else if(!strcmp(fword, "cd"))
+		    cd(cmd); //waiting for implementation
+		else if(!strcmp(fword, "pwd"))
+		    pwd(); //waiting for implementation
+		else if(!strcmp(fword, "kill"))
+		{
+		    if (cmd->args[1] == NULL || cmd->args[2] == NULL){
+		        printf("Error. Invalid number of arguments.\n");
+		        continue;
+		    }
+		    else
+		        killBackground(cmd);
+		}
+		else { // Run Command
+
+		}
+
+        if(infileptr != NULL)
+            fclose(infileptr);
+        if(outfileptr != NULL)
+            fclose(outfileptr);
+
+        /*run_executable(fword, args, infiledsc, outfiledsc);*/
+	}
 }
+
 /*******************************************************
  * Quash entry point
  *
@@ -268,49 +391,54 @@ int main(int argc, char** n) {
  
   start();
 
-  puts("   ____  __  _____   _____ __  __");
-  puts("  / __ \\/ / / /   | / ___// / / /");
-  puts(" / / / / / / / /| | \\__ \\/ /_/ / ");
-  puts("/ /_/ / /_/ / ___ |___/ / __  /  ");
-  puts("\\___\\_\\____/_/  |_/____/_/ /_/   \n");
-  
   puts("Welcome to Quash!");
   puts("Type \"exit\" to quit\n");
   
   // Main execution loop
   while (is_running() && get_command(&cmd, stdin)) {
-    //Copy the command string to a temporary variable.
-    char tmpCmd[1024];
-    memset(tmpCmd, 0, 1024);
-    strcpy(tmpCmd, cmd.cmdstr);
-    
-    
+
     //If not receiving any command from user, skip iteration to prevent segmentation fault.
-    if ((strlen(cmd.cmdstr) == 0)||(cmd.args[0] == NULL))
-        continue;
-    else if (!strcmp(cmd.cmdstr, "exit") || !strcmp(cmd.cmdstr, "quit"))
-        terminate(); // Exit Quash
-    else if(!strcmp(cmd.args[0], "set"))
-        set_var(&cmd);
-    else if(!strcmp(cmd.args[0], "jobs"))
-        print_jobs();
-    else if(!strcmp(cmd.args[0], "echo"))
-        echo(&cmd); //waiting for implementation
-    else if(!strcmp(cmd.args[0], "cd"))
-        cd(&cmd); //waiting for implementation
-    else if(!strcmp(cmd.args[0], "pwd"))
-        pwd(); //waiting for implementation
-    else if(!strcmp(cmd.args[0], "kill"))
-    {
-        if (cmd.args[1] == NULL || cmd.args[2] == NULL){
-            printf("Error. Invalid number of arguments.\n");
-            continue;
-        }
-        else
-            killBackground(cmd);
-        }
-    else 
-    {
+    if ((strlen(cmd.cmdstr) == 0)||(cmd.cmds[0] == NULL))
+    	continue;
+	else if (!strcmp(cmd.cmdstr, "exit") || !strcmp(cmd.cmdstr, "quit"))
+		terminate(); // Exit Quash
+	else {
+		parse_cmd(&cmd);
+	}
+
+    //Copy the command string to a temporary variable.
+    /*char tmpCmd[1024];*/
+    /*memset(tmpCmd, 0, 1024);*/
+    /*strcpy(tmpCmd, cmd.cmdstr);*/
+    
+	/*
+     *if ((strlen(cmd.cmdstr) == 0)||(cmd.args[0] == NULL))
+     *    continue;
+	 *else if (!strcmp(cmd.cmdstr, "exit") || !strcmp(cmd.cmdstr, "quit"))
+     *    terminate(); // Exit Quash
+     *else if(!strcmp(cmd.args[0], "set"))
+     *    set_var(&cmd);
+     *else if(!strcmp(cmd.args[0], "jobs"))
+     *    print_jobs();
+     *else if(!strcmp(cmd.args[0], "echo"))
+     *    echo(&cmd); //waiting for implementation
+     *else if(!strcmp(cmd.args[0], "cd"))
+     *    cd(&cmd); //waiting for implementation
+     *else if(!strcmp(cmd.args[0], "pwd"))
+     *    pwd(); //waiting for implementation
+     *else if(!strcmp(cmd.args[0], "kill"))
+     *{
+     *    if (cmd.args[1] == NULL || cmd.args[2] == NULL){
+     *        printf("Error. Invalid number of arguments.\n");
+     *        continue;
+     *    }
+     *    else
+     *        killBackground(cmd);
+	 *}
+     *else 
+     *{
+	 */
+	/*
         memset(tmpCmd, 0, 1024);
         strcpy(tmpCmd, cmd.cmdstr);
         FILE *infileptr = NULL;
@@ -325,13 +453,13 @@ int main(int argc, char** n) {
             infileptr = fopen(tmp,"r");
             if(infileptr != NULL)
             {
-            infiledsc = fileno(infileptr);
+				infiledsc = fileno(infileptr);
             }
             else
             {
-            perror ("The following error occurred");
-            continue;
-            }
+				perror ("The following error occurred");
+				continue;
+			}
         }
         strcpy(tmpCmd, cmd.cmdstr);
         if(cmd.sendsOut)
@@ -346,14 +474,14 @@ int main(int argc, char** n) {
         }
         strtok(cmd.cmdstr, "<>");//add \0 to begining of <> segment to designate end of string.
         cmd.cmdlen = strlen(cmd.cmdstr);
-        
-        run_executable(&cmd,infiledsc,outfiledsc);
+
         
         if(infileptr != NULL)
             fclose(infileptr);
         if(outfileptr != NULL)
             fclose(outfileptr);
-    }
+	*/
+    /*}*/
   }
   return EXIT_SUCCESS;
 }
