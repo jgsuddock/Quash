@@ -34,8 +34,8 @@ typedef struct command_t {
   pid_t pid;
   bool background;
   int numArgs;
-  int argNum;
-  char* args[100];
+  //int argNum;
+  //char* args[100];
   char* cmds[100];                 ///< user input string parsed into 
                                    ///< separate piped commands
   int cmdNum;                      ///< Number of commands within user 

@@ -280,9 +280,6 @@ void killBackground(command_t *cmd)
     
 }
 
-void parse_cmd(command_t *cmd) {
-}
-
 /*******************************************************
  * Quash entry point
  *
@@ -320,12 +317,10 @@ int main(int argc, char** n) {
 			int j = 0;
 			args[j] = strtok(tempbuff," ");
 			while (args[j] != NULL) {
-				printf("(%s) ",args[j]);
 				j++;
 				args[j] = strtok(NULL, " ");
 			}
 			numArgs = j;
-			printf("\n");
 
 			FILE *infileptr = NULL;
 			FILE *outfileptr = NULL;
