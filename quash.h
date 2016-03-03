@@ -32,16 +32,14 @@ typedef struct command_t {
                                    ///< robustness.
   size_t cmdlen;                   ///< length of the cmdstr character buffer
   pid_t pid;
-  bool takesIn;
-  bool sendsOut;
-  bool pipesIn;
-  bool pipesOut;
-  int numPipes;
   bool background;
-  char* args[100];                  ///< command string parsed into arguments 
+  int numArgs;
   int argNum;
-  char* cmds[100];
-  int cmdNum;
+  char* args[100];
+  char* cmds[100];                 ///< user input string parsed into 
+                                   ///< separate piped commands
+  int cmdNum;                      ///< Number of commands within user 
+                                   ///< input that are pipe delimited
   // Extend with more fields if needed
 } command_t;
 

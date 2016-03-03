@@ -69,20 +69,10 @@ bool get_command(command_t* cmd, FILE* in) {
     else
       cmd->cmdlen = len;
     
-    
     char tmpCmd[1024];
     memset(tmpCmd, 0, 1024);
     strcpy(tmpCmd, cmd->cmdstr);
     
-    /*int i = 0;*/
-    /*cmd->args[i] = strtok(tmpCmd," ");*/
-    /*while (cmd->args[i] != NULL)*/
-    /*{*/
-        /*i++;*/
-        /*cmd->args[i] = strtok(NULL, " ");*/
-    /*}*/
-    /*cmd->argNum = i;*/
-
 	int i = 0;
 	cmd->cmds[i] = strtok(tmpCmd,"|");
 	while (cmd->cmds[i] != NULL) {
@@ -97,7 +87,6 @@ bool get_command(command_t* cmd, FILE* in) {
 
     //check for special io cases: <,>,&, or |
     /* JAKE TO BE REMOVED */
-    cmd->pipesOut = (strpbrk(cmd->cmdstr,"|")!=false);
     /* JAKE KEEP THIS */
     cmd->background = (cmd->cmdstr[cmd->cmdlen-1] == '&') ? true : false;
     
@@ -295,88 +284,6 @@ void killBackground(command_t *cmd)
 }
 
 void parse_cmd(command_t *cmd) {
-	for(int i = 0; i < cmd->cmdNum; i++) {
-		puts(cmd->cmds[i]);
-		// Stores command into buffer for parsing
-		char tempbuff[1024];
-		memset(tempbuff, 0, 1024);
-		strcpy(tempbuff, cmd->cmds[i]);
-
-		// Breaks command into first word (fword) and rest of command (args)
-		char * args = tempbuff;
-		while (*args != 0 && *(args++) != ' ') {}
-		char * fword = strtok(tempbuff, " ");
-		
-		printf("%s: %s\n",fword,args);
-
-        FILE *infileptr = NULL;
-        FILE *outfileptr = NULL;
-        int infiledsc = -1;
-        int outfiledsc = -1;
-
-		if(strpbrk(cmd->cmds[i],"<") != false) {
-			/* JAKE NEEDS TO BE FIXED */
-			/*
-            char *tmp = strchr(tmpCmd,'<')+1;
-            if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
-                tmp++;
-            strtok(tmp, " ");//find next space or end of string. and put \0
-            infileptr = fopen(tmp,"r");
-            if(infileptr != NULL)
-            {
-				infiledsc = fileno(infileptr);
-            }
-            else
-            {
-				perror ("The following error occurred");
-				continue;
-			}
-			*/
-        }
-		if(strpbrk(cmd->cmds[i],">") != false) {
-			/* JAKE NEEDS TO BE FIXED */
-			/*
-            char *tmp = strchr(tmpCmd,'>')+1;
-            if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
-                tmp++;
-            strtok(tmp, " ");//find next space or end of string. and put \0
-
-            outfileptr = fopen(tmp,"w+");
-            outfiledsc = fileno(outfileptr);
-            */
-        }
-
-
-		else if(!strcmp(fword, "set"))
-		    set_var(cmd);
-		else if(!strcmp(fword, "jobs"))
-		    print_jobs();
-		else if(!strcmp(fword, "echo"))
-		    echo(cmd); //waiting for implementation
-		else if(!strcmp(fword, "cd"))
-		    cd(cmd); //waiting for implementation
-		else if(!strcmp(fword, "pwd"))
-		    pwd(); //waiting for implementation
-		else if(!strcmp(fword, "kill"))
-		{
-		    if (cmd->args[1] == NULL || cmd->args[2] == NULL){
-		        printf("Error. Invalid number of arguments.\n");
-		        continue;
-		    }
-		    else
-		        killBackground(cmd);
-		}
-		else { // Run Command
-
-		}
-
-        if(infileptr != NULL)
-            fclose(infileptr);
-        if(outfileptr != NULL)
-            fclose(outfileptr);
-
-        /*run_executable(fword, args, infiledsc, outfiledsc);*/
-	}
 }
 
 /*******************************************************
@@ -404,6 +311,90 @@ int main(int argc, char** n) {
 		terminate(); // Exit Quash
 	else {
 		parse_cmd(&cmd);
+
+		int i;
+		for(i = 0; i < cmd.cmdNum; i++) {
+			puts(cmd.cmds[i]);
+			// Stores command into buffer for parsing
+			char tempbuff[1024];
+			memset(tempbuff, 0, 1024);
+			strcpy(tempbuff, cmd.cmds[i]);
+
+			// Breaks command into first word (fword) and rest of command (args)
+			char * args = tempbuff;
+			while (*args != 0 && *(args++) != ' ') {}
+			char * fword = strtok(tempbuff, " ");
+			
+			printf("%s: %s\n",fword,args);
+
+			FILE *infileptr = NULL;
+			FILE *outfileptr = NULL;
+			int infiledsc = -1;
+			int outfiledsc = -1;
+
+			if(strpbrk(cmd.cmds[i],"<") != false) {
+				/* JAKE NEEDS TO BE FIXED */
+				/*
+				char *tmp = strchr(tmpCmd,'<')+1;
+				if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
+					tmp++;
+				strtok(tmp, " ");//find next space or end of string. and put \0
+				infileptr = fopen(tmp,"r");
+				if(infileptr != NULL)
+				{
+					infiledsc = fileno(infileptr);
+				}
+				else
+				{
+					perror ("The following error occurred");
+					continue;
+				}
+				*/
+			}
+			if(strpbrk(cmd.cmds[i],">") != false) {
+				/* JAKE NEEDS TO BE FIXED */
+				/*
+				char *tmp = strchr(tmpCmd,'>')+1;
+				if(strncmp(tmp," ",1)==0)//if space, move ahead by one.
+					tmp++;
+				strtok(tmp, " ");//find next space or end of string. and put \0
+
+				outfileptr = fopen(tmp,"w+");
+				outfiledsc = fileno(outfileptr);
+				*/
+			}
+
+
+			else if(!strcmp(fword, "set"))
+				set_var(&cmd);
+			else if(!strcmp(fword, "jobs"))
+				print_jobs();
+			else if(!strcmp(fword, "echo"))
+				echo(&cmd); //waiting for implementation
+			else if(!strcmp(fword, "cd"))
+				cd(&cmd); //waiting for implementation
+			else if(!strcmp(fword, "pwd"))
+				pwd(); //waiting for implementation
+			else if(!strcmp(fword, "kill"))
+			{
+				if (cmd.args[1] == NULL || cmd.args[2] == NULL){
+					printf("Error. Invalid number of arguments.\n");
+					continue;
+				}
+				else
+					killBackground(&cmd);
+			}
+			else { // Run Command
+				run_executable(&fword, &args, infiledsc, outfiledsc);
+			}
+
+			if(infileptr != NULL)
+				fclose(infileptr);
+			if(outfileptr != NULL)
+				fclose(outfileptr);
+
+			/*run_executable(fword, args, infiledsc, outfiledsc);*/
+		}
 	}
 
     //Copy the command string to a temporary variable.
