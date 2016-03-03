@@ -79,7 +79,6 @@ bool get_command(command_t* cmd, FILE* in) {
 		if(cmd->cmds[i][0] == ' ') { // Removes leading space
 			cmd->cmds[i]++;
 		}
-		puts(cmd->cmds[i]);
 		i++;
 		cmd->cmds[i] = strtok(NULL, "|");
 	}
@@ -314,7 +313,6 @@ int main(int argc, char** n) {
 
 		int i;
 		for(i = 0; i < cmd.cmdNum; i++) {
-			puts(cmd.cmds[i]);
 			// Stores command into buffer for parsing
 			char tempbuff[1024];
 			memset(tempbuff, 0, 1024);
@@ -385,7 +383,7 @@ int main(int argc, char** n) {
 					killBackground(&cmd);
 			}
 			else { // Run Command
-				run_executable(&fword, &args, infiledsc, outfiledsc);
+				run_executable(fword, args, infiledsc, outfiledsc);
 			}
 
 			if(infileptr != NULL)
