@@ -97,7 +97,7 @@ bool get_command(command_t* cmd, FILE* in) {
 /*******************************************************
  * run executable
  *******************************************************/
-int run_executable(char* path, char* args, int infile, int outfile) {
+int run_executable(char* args, int infile, int outfile) {
 
 	pid_t pid;
 	if((pid == fork()) < 0) {
@@ -120,7 +120,7 @@ int run_executable(char* path, char* args, int infile, int outfile) {
 		dup2(outfile, STDOUT_FILENO);
 	}
 
-	printf("%s: %s\n",path,args);
+	printf("%s\n",args);
 
 	//excel("/bin/ls", "/bin/ls", NULL);
 
@@ -309,21 +309,25 @@ int main(int argc, char** n) {
 	else if (!strcmp(cmd.cmdstr, "exit") || !strcmp(cmd.cmdstr, "quit"))
 		terminate(); // Exit Quash
 	else {
-		parse_cmd(&cmd);
-
 		int i;
 		for(i = 0; i < cmd.cmdNum; i++) {
+
 			// Stores command into buffer for parsing
 			char tempbuff[1024];
+			char * args;
+			int numArgs;
 			memset(tempbuff, 0, 1024);
 			strcpy(tempbuff, cmd.cmds[i]);
 
-			// Breaks command into first word (fword) and rest of command (args)
-			char * args = tempbuff;
-			while (*args != 0 && *(args++) != ' ') {}
-			char * fword = strtok(tempbuff, " ");
-			
-			printf("%s: %s\n",fword,args);
+			int j = 0;
+			args = strtok(tempbuff," ");
+			while (args != NULL) {
+				printf("(%s) ",args);
+				j++;
+				args = strtok(NULL, " ");
+			}
+			numArgs = j;
+			printf("\n");
 
 			FILE *infileptr = NULL;
 			FILE *outfileptr = NULL;
@@ -362,20 +366,19 @@ int main(int argc, char** n) {
 				*/
 			}
 
-
-			else if(!strcmp(fword, "set"))
+			else if(!strcmp(args[0], "set"))
 				set_var(&cmd);
-			else if(!strcmp(fword, "jobs"))
+			else if(!strcmp(args[0], "jobs"))
 				print_jobs();
-			else if(!strcmp(fword, "echo"))
+			else if(!strcmp(args[0], "echo"))
 				echo(&cmd); //waiting for implementation
-			else if(!strcmp(fword, "cd"))
+			else if(!strcmp(args[0], "cd"))
 				cd(&cmd); //waiting for implementation
-			else if(!strcmp(fword, "pwd"))
+			else if(!strcmp(args[0], "pwd"))
 				pwd(); //waiting for implementation
-			else if(!strcmp(fword, "kill"))
+			else if(!strcmp(args[0], "kill"))
 			{
-				if (cmd.args[1] == NULL || cmd.args[2] == NULL){
+				if (args[1] == NULL || args[2] == NULL){
 					printf("Error. Invalid number of arguments.\n");
 					continue;
 				}
@@ -383,7 +386,7 @@ int main(int argc, char** n) {
 					killBackground(&cmd);
 			}
 			else { // Run Command
-				run_executable(fword, args, infiledsc, outfiledsc);
+				run_executable(args, infiledsc, outfiledsc);
 			}
 
 			if(infileptr != NULL)

@@ -58,7 +58,7 @@ void terminate();
 /*******************************************************
  * runs executable from commandline.
  *******************************************************/
-int run_executable(char* path, char* args, int infile, int outfile);
+int run_executable(char* args, int infile, int outfile);
 
 /*******************************************************
  * Sets a given environment variable to a given value, both stored in cmd struct.
